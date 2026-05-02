@@ -60,6 +60,12 @@ streamlit run app.py
 
 ---
 
+## Screenshot
+
+<img width="1364" height="720" alt="Capture" src="https://github.com/user-attachments/assets/a4a1ccbf-f3f0-4a24-bf24-a4f08b609eeb" />
+
+---
+
 ## ⚙️ Key Components
 
 ### 📌 Embedding Model
