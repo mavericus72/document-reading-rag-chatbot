@@ -5,6 +5,7 @@ import faiss
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 st.title("Insurance Policy RAG Chatbot")
 
@@ -27,9 +28,18 @@ if uploaded_file:
     chunk_size = 500
 
     chunks = [
-        text[i:i+chunk_size]
+        text[i:i + chunk_size]
         for i in range(0, len(text), chunk_size)
     ]
+
+    # Remove empty chunks
+    chunks = [chunk for chunk in chunks if chunk.strip()]
+
+    st.write("Total chunks:", len(chunks))
+
+    if len(chunks) == 0:
+        st.error("No text could be extracted from the PDF.")
+        st.stop()
 
     # Embeddings
     model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -37,6 +47,8 @@ if uploaded_file:
     embeddings = model.encode(chunks)
 
     embeddings = np.array(embeddings).astype('float32')
+
+    st.write("Embedding shape:", embeddings.shape)
 
     # FAISS
     dimension = embeddings.shape[1]
@@ -46,9 +58,10 @@ if uploaded_file:
     index.add(embeddings)
 
     # LLM
-    generator = pipeline(
-        "text2text-generation",
-        model="google/flan-t5-base"
+    tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-base")
+
+    model_llm = T5ForConditionalGeneration.from_pretrained(
+        "google/flan-t5-base"
     )
 
     # User query
@@ -86,12 +99,18 @@ if uploaded_file:
         """
 
         # Generate response
-        response = generator(
-            prompt,
-            max_length=256,
-            do_sample=False
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+
+        outputs = model_llm.generate(
+            **inputs,
+            max_new_tokens=1500
+        )
+
+        answer = tokenizer.decode(
+            outputs[0],
+            skip_special_tokens=True
         )
 
         st.subheader("Answer")
 
-        st.write(response[0]['generated_text'])
+        st.write(answer)
